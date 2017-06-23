@@ -1,0 +1,3 @@
+badvestments
+-----
+Bad Investment Advice

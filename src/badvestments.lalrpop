@@ -1,0 +1,23 @@
+grammar;
+
+use std::str::FromStr;
+use ast::Rule;
+
+pub Rule: Box<Rule> = {
+   <s:Symbol> "::=" <ss:SymbolsOrQuotedStrings> => Box::new(Rule::Substitution(s, ss)),
+};
+
+Symbol: String = {
+    r"[[:alpha:]]+" => String::from_str(<>).unwrap()
+};
+
+// The regex r#""[ !#-~]+""# is a " followed by one or more printable ascii
+// characters except for " followed by a closing ".
+SymbolOrQuotedString: String = {
+    r"[[:alpha:]]+" => String::from_str(<>).unwrap(),
+    r#""[ !#-~]+""# => String::from_str(<>).unwrap(),
+};
+
+SymbolsOrQuotedStrings: Vec<String> = {
+    <SymbolOrQuotedString*>,
+};
