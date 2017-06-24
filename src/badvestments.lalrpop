@@ -1,10 +1,10 @@
 grammar;
 
 use std::str::FromStr;
-use ast::Rule;
+use ast::Substitution;
 
-pub Rule: Box<Rule> = {
-   <s:Symbol> "::=" <ss:SymbolsOrQuotedStrings> => Box::new(Rule::Substitution(s, ss)),
+pub Rule: Substitution = {
+   <s:Symbol> "::=" <ss:SymbolsOrQuotedStrings> => Substitution { s: s, v: ss },
 };
 
 Symbol: String = {
