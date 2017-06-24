@@ -1,5 +1,5 @@
 #[derive (Debug)]
-pub enum Rule {
-    Substitution(String, Vec<String>),
-    Error,
+pub struct Substitution {
+    pub s: String,
+    pub v: Vec<String>
 }

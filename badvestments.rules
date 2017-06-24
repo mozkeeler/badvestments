@@ -1,0 +1,13 @@
+Badvestment ::= Prefix Vehicle
+Badvestment ::= Vehicle Postfix
+Prefix ::= "you should buy"
+Postfix ::= "would be a good investment"
+Vehicle ::= Modifier VehicleLiteral
+VehicleLiteral ::= "bitcoin"
+VehicleLiteral ::= "litecoin"
+VehicleLiteral ::= "dogecoin"
+VehicleLiteral ::= "etherium"
+VehicleLiteral ::= "futures"
+Modifier ::= "mortgage-backed"
+Modifier ::= "homeopathic"
+Modifier ::= "soylent"
