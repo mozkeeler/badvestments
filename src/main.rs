@@ -1,3 +1,5 @@
+extern crate rand;
+
 pub mod badvestments;
 pub mod ast;
 
@@ -5,6 +7,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::collections::HashMap;
+
+use rand::Rng;
 
 struct SubstitutionMap {
     map: HashMap<String, Vec<Vec<String>>>
@@ -35,7 +39,8 @@ impl SubstitutionMap {
         for symbol in symbols {
             match self.map.get(&symbol) {
                 Some(substitutions) => {
-                    for s in substitutions[0].iter() {
+                    let chosen = rand::thread_rng().choose(&substitutions).unwrap();
+                    for s in chosen.iter() {
                         results.push(s.clone());
                     }
                 },
@@ -68,9 +73,12 @@ fn main() {
     let mut badvestment = vec![String::from("Badvestment")];
     let mut next = substitutions.apply_substitutions(badvestment.clone());
     while badvestment != next {
-        println!("{:?}", badvestment);
         badvestment = next;
         next = substitutions.apply_substitutions(badvestment.clone());
     }
-    println!("{:?}", badvestment);
+    let results: Vec<String> = badvestment.into_iter()
+                                          .map(|s| { s.replace('"', "") })
+                                          .collect();
+
+    println!("{}", results.join(" "));
 }
