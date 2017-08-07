@@ -60,7 +60,6 @@ fn main() {
     for line in reader.lines() {
         let l = line.unwrap();
         let result = badvestments::parse_Rule(l.as_str());
-        println!("{:?}", result);
         match result {
             Ok(substitution) => {
                 substitutions.add_substitution(substitution);
