@@ -2,3 +2,5 @@ target/
 **/*.rs.bk
 Cargo.lock
 src/badvestments.rs
+badvestments.keys
+**/*.swp
