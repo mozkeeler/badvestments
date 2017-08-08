@@ -153,9 +153,9 @@ fn main() {
     let consumer = Token::new(token.consumer_key, token.consumer_secret);
     let access = Token::new(token.access_key, token.access_secret);
 
-    let doit = prompt("tweet? Y/N");
+    let doit = prompt("tweet? y/n");
     match doit.as_ref() {
-        "Y" => {
+        "y" => {
             twitter::update_status(&consumer, &access, &tweet).unwrap();
         },
         _ => {
