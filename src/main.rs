@@ -2,14 +2,14 @@ extern crate oauth_client as oath;
 extern crate rand;
 extern crate twitter_api as twitter;
 
-pub mod badvestments;
 pub mod ast;
+pub mod badvestments;
 
 use oath::Token;
+use rand::Rng;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
-use std::collections::HashMap;
-use rand::Rng;
 
 struct SubstitutionMap {
     map: HashMap<String, Vec<Vec<String>>>
@@ -71,43 +71,42 @@ struct AccessToken {
 
 impl AccessToken {
     pub fn read() -> Option<AccessToken> {
-        let mut token = AccessToken { consumer_key: String::new(), consumer_secret: String::new(),
-                                      access_key: String::new(), access_secret: String::new() };
         let file = match File::open("badvestments.keys") {
             Ok(f) => f,
             Err(_) => return None,
         };
         let reader = BufReader::new(&file);
         let mut lines = reader.lines();
-        token.consumer_key = match lines.next() {
+        let consumer_key = match lines.next() {
             Some(result) => match result {
                 Ok(val) => val,
                 Err(_) => return None,
             },
             None => return None,
         };
-        token.consumer_secret = match lines.next() {
+        let consumer_secret = match lines.next() {
             Some(result) => match result {
                 Ok(val) => val,
                 Err(_) => return None,
             },
             None => return None,
         };
-        token.access_key = match lines.next() {
+        let access_key = match lines.next() {
             Some(result) => match result {
                 Ok(val) => val,
                 Err(_) => return None,
             },
             None => return None,
         };
-        token.access_secret = match lines.next() {
+        let access_secret = match lines.next() {
             Some(result) => match result {
                 Ok(val) => val,
                 Err(_) => return None,
             },
             None => return None,
         };
-        return Some(token);
+        return Some(AccessToken { consumer_key: consumer_key, consumer_secret: consumer_secret,
+                                  access_key: access_key, access_secret: access_secret });
     }
 }
 
