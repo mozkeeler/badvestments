@@ -11,38 +11,67 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 
-struct SubstitutionMap {
-    map: HashMap<String, Vec<Vec<String>>>
+#[derive(Debug)]
+struct SubstitutionsMap {
+    map: HashMap<String, Substitutions>
 }
 
-impl SubstitutionMap {
-    fn new() -> SubstitutionMap {
-        SubstitutionMap { map: HashMap::new() }
+struct TokenMap {
+    map: HashMap<String, usize>
+}
+
+#[derive(Debug)]
+struct Substitution {
+    produces: Vec<String>,
+}
+
+#[derive(Debug)]
+struct Substitutions {
+    options: Vec<Substitution>
+}
+
+impl SubstitutionsMap {
+    fn new() -> SubstitutionsMap {
+        SubstitutionsMap { map: HashMap::new() }
     }
 
     fn add_substitution(&mut self, substitution : ast::Substitution) {
-        let mut insert_as_new = false;
+        let new_substitution = Substitution::new(substitution.v);
+        if self.find_loop(&substitution.s, &new_substitution) {
+            println!("can't add {} ::= {:?} - loop found", substitution.s, new_substitution);
+            return;
+        }
         match self.map.get_mut(&substitution.s) {
             Some(ref mut substitutions) => {
-                substitutions.push(substitution.v.clone());
+                substitutions.options.push(new_substitution);
+                return;
             },
-            None => {
-                insert_as_new = true;
-            }
-        }
-        if insert_as_new {
-            self.map.insert(substitution.s, vec![substitution.v]);
-        }
+            None => {}
+        };
+        self.map.insert(substitution.s, Substitutions::new(new_substitution));
     }
 
-    fn apply_substitutions(&self, symbols : Vec<String>) -> Vec<String> {
+    fn apply_substitutions(&self, token_map: &TokenMap, symbols : Vec<String>) -> Vec<String> {
         let mut results: Vec<String> = vec![];
         for symbol in symbols {
             match self.map.get(&symbol) {
                 Some(substitutions) => {
-                    let chosen = rand::thread_rng().choose(&substitutions).unwrap();
-                    for s in chosen.iter() {
-                        results.push(s.clone());
+                    let mut total_options = 0;
+                    for sub in substitutions.options.iter() {
+                        total_options += sub.get_count(token_map);
+                    }
+                    let mut rng = rand::thread_rng();
+                    let chosen = rng.gen_range(0, total_options);
+                    let mut current = 0;
+                    for substitution in substitutions.options.iter() {
+                        let count = substitution.get_count(token_map);
+                        if current + count >= chosen {
+                            for produced in substitution.produces.iter() {
+                                results.push(produced.clone());
+                            }
+                            break;
+                        }
+                        current += count;
                     }
                 },
                 None => {
@@ -50,7 +79,82 @@ impl SubstitutionMap {
                 }
             }
         }
-        return results;
+        results
+    }
+
+    fn find_loop(&self, symbol : &String, substitution : &Substitution) -> bool {
+        for produced in substitution.produces.iter() {
+            if symbol == produced {
+                return true;
+            }
+            match self.map.get(produced) {
+                Some(preexisting_substitutions) => {
+                    for preexisting_substitution in preexisting_substitutions.options.iter() {
+                        if self.find_loop(symbol, preexisting_substitution) {
+                            return true;
+                        }
+                    }
+                },
+                None => {}
+            }
+        }
+        false
+    }
+
+    fn count_for(&self, symbol : &String) -> usize {
+        let mut count = 0;
+        match self.map.get(symbol) {
+            Some(substitutions) => {
+                for substitution in substitutions.options.iter() {
+                    let mut sub_count = 1;
+                    for produced in substitution.produces.iter() {
+                        sub_count *= self.count_for(produced);
+                    }
+                    count += sub_count;
+                }
+            },
+            None => {
+                count = 1;
+            }
+        }
+        count
+    }
+}
+
+impl TokenMap {
+    fn new(substitutions_map : &SubstitutionsMap) -> TokenMap {
+        let mut token_map = TokenMap { map: HashMap::new() };
+        for token in substitutions_map.map.keys() {
+            token_map.map.insert(token.clone(), substitutions_map.count_for(token));
+        }
+        token_map
+    }
+
+    fn count_for(&self, token : &String) -> usize {
+        return match self.map.get(token) {
+            Some(count) => *count,
+            None => 1
+        }
+    }
+}
+
+impl Substitution {
+    fn new(produces : Vec<String>) -> Substitution {
+        Substitution { produces: produces }
+    }
+
+    fn get_count(&self, token_map : &TokenMap) -> usize {
+        let mut count = 0;
+        for token in self.produces.iter() {
+            count += token_map.count_for(token);
+        }
+        count
+    }
+}
+
+impl Substitutions {
+    fn new(substitution : Substitution) -> Substitutions {
+        Substitutions { options: vec![substitution] }
     }
 }
 
@@ -113,7 +217,7 @@ impl AccessToken {
 fn main() {
     let file = File::open("badvestments.rules").unwrap();
     let reader = BufReader::new(&file);
-    let mut substitutions = SubstitutionMap::new();
+    let mut substitutions = SubstitutionsMap::new();
     for line in reader.lines() {
         let l = line.unwrap();
         let result = badvestments::parse_Rule(l.as_str());
@@ -126,11 +230,12 @@ fn main() {
             }
         }
     };
+    let token_map = TokenMap::new(&substitutions);
     let mut badvestment = vec![String::from("Badvestment")];
-    let mut next = substitutions.apply_substitutions(badvestment.clone());
+    let mut next = substitutions.apply_substitutions(&token_map, badvestment.clone());
     while badvestment != next {
         badvestment = next;
-        next = substitutions.apply_substitutions(badvestment.clone());
+        next = substitutions.apply_substitutions(&token_map, badvestment.clone());
     }
     let results: Vec<String> = badvestment.into_iter()
                                           .map(|s| { s.replace('"', "") })
